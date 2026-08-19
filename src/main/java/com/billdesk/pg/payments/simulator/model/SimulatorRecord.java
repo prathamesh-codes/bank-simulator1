@@ -83,6 +83,10 @@ public class SimulatorRecord {
 
   @Column(name = "UPDATED_AT", nullable = false)
   private LocalDateTime updatedAt;
+  
+  @Lob
+  @Column(name = "BANK_EXECUTION_METADATA")
+  private String bankExecutionMetadata;
 
   @PrePersist
   void onCreate() {
@@ -252,5 +256,14 @@ public class SimulatorRecord {
 
     return updatedAt;
   }
+  
+  public String getBankExecutionMetadata() {
+	    return bankExecutionMetadata;
+	}
+
+	public void setBankExecutionMetadata(
+	        String bankExecutionMetadata) {
+	    this.bankExecutionMetadata = bankExecutionMetadata;
+	}
   
 }

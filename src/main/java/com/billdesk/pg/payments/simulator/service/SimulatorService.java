@@ -11,15 +11,10 @@ import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -158,33 +153,14 @@ public class SimulatorService {
                  e);
     }
     
-//     try {
-
-//         record.setBankMetadata(
-//                 objectMapper.writeValueAsString(
-//                         initFields
-//                 )
-//         );
-
-//     } catch (Exception e) {
-
-//         logger.warn(
-//                 "Could not serialize bank metadata bankId={} txnId={}",
-//                 bankId,
-//                 parsed.getTransactionId(),
-//                 e
-//         );
-//     }
-    
-//     if (record.getBankRef() == null ||
-//             record.getBankRef().isBlank()) {
-
-//         record.setBankRef(
-//                 generateBankRef()
-//         );
-//     }
-    
     store.save(record);
+    
+//  added by me
+  simulator.afterInitPersisted(
+          record,
+          initFields
+  );
+    
     logger.info("Simulator record initiated bankId={} txnId={} amount={} currency={} returnUrl={}",
                bankId,
                record.getTxnId(),
@@ -254,28 +230,7 @@ public class SimulatorService {
                delivery,
                callbackUrl);
 
-//     String browserRedirectUrl =
-//             fireS2SCallback(
-//                     callbackDelivery,
-//                     bankId,
-//                     txnId,
-//                     "primary"
-//             );
-
 String browserRedirectUrl = fireS2SCallback(callbackUrl, callbackDelivery.getS2sMethod(), bankId, txnId, "primary");
-
-//     if (delivery == DeliveryMode.DUPLICATE_CALLBACK) {
-//     	scheduler.schedule(
-//     	        () -> fireS2SCallback(
-//     	                callbackDelivery,
-//     	                bankId,
-//     	                txnId,
-//     	                "duplicate"
-//     	        ),
-//     	        duplicateCallDelayMs,
-//     	        TimeUnit.MILLISECONDS
-//     	);
-//     }
 
         if (delivery == DeliveryMode.DUPLICATE_CALLBACK) {
       scheduler.schedule(() -> fireS2SCallback(callbackUrl,
@@ -302,15 +257,7 @@ String browserRedirectUrl = fireS2SCallback(callbackUrl, callbackDelivery.getS2s
 
     logger.info("Received QRY_INIT_URL verification call for bankId={} rawParams={}", bankId, rawParams);
     NetbankingBankSimulator simulator = resolveBank(bankId);
-//     Map<String, String> params =
-//             simulator.preprocessVerification(
-//                     rawParams
-//             );
 
-//     String txnId =
-//             simulator.extractVerificationTxnId(
-//                     params
-//             );
         String txnId = simulator.extractVerificationTxnId(rawParams);
 
     if (txnId == null || txnId.isBlank()) {
@@ -333,11 +280,6 @@ String browserRedirectUrl = fireS2SCallback(callbackUrl, callbackDelivery.getS2s
                                                                                 ValidationResult.fail("selectedResult",
                                                                                                      "tester has not submitted an outcome on the simulator page yet")));
     }
-
-//     ValidationResult validation = simulator.validateVerification(
-//             params,
-//             record
-//     );
 
         ValidationResult validation = simulator.validateVerification(rawParams, record);
 
@@ -386,71 +328,6 @@ String browserRedirectUrl = fireS2SCallback(callbackUrl, callbackDelivery.getS2s
    * the response doesn't look like that shape, so the caller can fall back to just closing the
    * tab.
    */
-//   private String fireS2SCallback(
-// 	        CallbackDelivery delivery,
-// 	        String bankId,
-// 	        String txnId,
-// 	        String kind) {
-
-// 	    try {
-
-// 	        String url =
-// 	                UrlUtil.withQuery(
-// 	                        delivery.getTargetUrl(),
-// 	                        delivery.getQueryParams()
-// 	                );
-
-// 	        HttpEntity<?> entity =
-// 	                HttpEntity.EMPTY;
-
-// 	        if (!delivery.getFormFields().isEmpty()) {
-
-// 	            MultiValueMap<String, String> form =
-// 	                    new LinkedMultiValueMap<>();
-
-// 	            delivery.getFormFields()
-// 	                    .forEach(form::add);
-
-// 	            HttpHeaders headers =
-// 	                    new HttpHeaders();
-
-// 	            headers.setContentType(
-// 	                    MediaType.APPLICATION_FORM_URLENCODED
-// 	            );
-
-// 	            entity =
-// 	                    new HttpEntity<>(
-// 	                            form,
-// 	                            headers
-// 	                    );
-// 	        }
-
-// 	        ResponseEntity<String> response =
-// 	                restTemplate.exchange(
-// 	                        URI.create(url),
-// 	                        delivery.getS2sMethod(),
-// 	                        entity,
-// 	                        String.class
-// 	                );
-
-// 	        return derivePgRedirectUrl(
-// 	                response.getBody()
-// 	        );
-
-// 	    } catch (Exception e) {
-
-// 	        logger.warn(
-// 	                "{} S2S callback failed bankId={} txnId={}",
-// 	                kind,
-// 	                bankId,
-// 	                txnId,
-// 	                e
-// 	        );
-
-// 	        return null;
-// 	    }
-// 	}
-
   private String fireS2SCallback(String url, HttpMethod method, String bankId, String txnId, String kind) {
 
     try {

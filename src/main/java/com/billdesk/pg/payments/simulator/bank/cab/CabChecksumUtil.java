@@ -114,6 +114,20 @@ public final class CabChecksumUtil {
                 + "|" + safe(fields.get("error_msg"))
                 + "|" + checksumKey;
     }
+    
+    static String buildApi2ChecksumString(
+            Map<String, String> fields,
+            String checksumKey) {
+
+        return safe(fields.get("status"))
+                + "|" + safe(fields.get("payment_ref_no"))
+                + "|" + safe(fields.get("biller_name"))
+                + "|" + safe(fields.get("bank_ref_no"))
+                + "|" + safe(fields.get("amount"))
+                + "|" + safe(fields.get("account_no"))
+                + "|" + safe(fields.get("error_msg"))
+                + "|" + safe(checksumKey);
+    }
 
     private static String safe(String value) {
         return value == null ? "" : value;

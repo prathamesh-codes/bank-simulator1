@@ -22,6 +22,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Component
 public class CabService implements NetbankingBankSimulator {
+	
+	private final CabApi2Service cabApi2Service;
 
     private static final Logger logger =
             LogManager.getLogger(CabService.class);
@@ -73,8 +75,9 @@ public class CabService implements NetbankingBankSimulator {
     @Value("${simulator.cab.iv}")
     private String iv;
 
-    public CabService(ObjectMapper objectMapper) {
+    public CabService(ObjectMapper objectMapper,CabApi2Service cabApi2Service) {
         this.objectMapper = objectMapper;
+        this.cabApi2Service = cabApi2Service;
     }
 
     @Override
@@ -313,7 +316,7 @@ public class CabService implements NetbankingBankSimulator {
          * adding BANK_METADATA to the common SimulatorRecord entity.
          */
         Map<String, String> init =
-                getBankMetadata(record);
+        		getInitFields(record);
 
         Map<String, String> fields =
                 new LinkedHashMap<>();
@@ -341,11 +344,21 @@ public class CabService implements NetbankingBankSimulator {
          * Original SimulatorService generates bankRef immediately
          * before buildCallbackResponse() is called.
          */
+//        fields.put(
+//                "bank_ref_no",
+//                safe(
+//                        record.getBankRef()
+//                )
+//        );
+        String cabBankRef =
+                cabApi2Service
+                        .getBankRef(
+                                record
+                        );
+
         fields.put(
                 "bank_ref_no",
-                safe(
-                        record.getBankRef()
-                )
+                cabBankRef
         );
 
         fields.put(
@@ -517,7 +530,7 @@ public class CabService implements NetbankingBankSimulator {
          * Reconstruct fields captured during API 1.
          */
         Map<String, String> init =
-                getBankMetadata(
+        		getInitFields(
                         record
                 );
 
@@ -578,18 +591,32 @@ public class CabService implements NetbankingBankSimulator {
         /*
          * 5. Check bank reference.
          */
-        if (!safe(record.getBankRef())
-                .equals(
-                        safe(
-                                raw.get(
-                                        "bank_ref_no"
-                                )
-                        )
-                )) {
+//        if (!safe(record.getBankRef())
+//                .equals(
+//                        safe(
+//                                raw.get(
+//                                        "bank_ref_no"
+//                                )
+//                        )
+//                )) {
+//
+//            return ValidationResult.fail(
+//                    "bank_ref_no",
+//                    "does not match generated bank reference"
+//            );
+//        }
+        String expectedBankRef =
+                cabApi2Service
+                        .getBankRef(
+                                record
+                        );
+
+        if (!expectedBankRef.equals(
+                raw.get("bank_ref_no"))) {
 
             return ValidationResult.fail(
                     "bank_ref_no",
-                    "does not match generated bank reference"
+                    "does not match CAB bank reference generated during API 2"
             );
         }
 
@@ -693,11 +720,30 @@ public class CabService implements NetbankingBankSimulator {
                 )
         );
 
+//        fields.put(
+//                "bank_ref_no",
+//                safe(
+//                        record.getBankRef()
+//                )
+//        );
+        String bankRef;
+
+        try {
+
+            bankRef =
+                    cabApi2Service
+                            .getBankRef(
+                                    record
+                            );
+
+        } catch (Exception e) {
+
+            bankRef = "";
+        }
+
         fields.put(
                 "bank_ref_no",
-                safe(
-                        record.getBankRef()
-                )
+                bankRef
         );
 
         fields.put(
@@ -856,17 +902,14 @@ public class CabService implements NetbankingBankSimulator {
      * SimulatorService already persists the original request in
      * RAW_INIT_PARAMS.
      */
-    private Map<String, String> getBankMetadata(
+    private Map<String, String> getInitFields(
             SimulatorRecord record) {
 
-        String rawInitParams =
-                record.getRawInitParams();
-
-        if (rawInitParams == null ||
-                rawInitParams.isBlank()) {
+        if (record.getRawInitParams() == null ||
+                record.getRawInitParams().isBlank()) {
 
             throw new IllegalStateException(
-                    "CAB raw init parameters missing for txn="
+                    "CAB raw init params missing for txn="
                             + record.getTxnId()
             );
         }
@@ -875,33 +918,32 @@ public class CabService implements NetbankingBankSimulator {
 
             Map<String, String> raw =
                     objectMapper.readValue(
-                            rawInitParams,
-                            new TypeReference<Map<String, String>>() {
-                            }
+                            record.getRawInitParams(),
+                            new TypeReference<
+                                    Map<String, String>>() {}
                     );
 
-            /*
-             * Run CAB's existing API-1 preprocessing again.
-             *
-             * This decrypts the original `data` value and gives us:
-             *
-             * payee_id
-             * biller_name
-             * account_no
-             * etc.
-             */
-            return preprocessInit(
-                    raw
-            );
+            return preprocessInit(raw);
 
         } catch (Exception e) {
 
             throw new IllegalStateException(
-                    "Could not reconstruct CAB init metadata for txn="
+                    "Could not reconstruct CAB init fields for txn="
                             + record.getTxnId(),
                     e
             );
         }
+    }
+    
+    @Override
+    public void afterInitPersisted(
+            SimulatorRecord record,
+            Map<String, String> initFields) {
+
+        cabApi2Service.sendAcknowledgement(
+                record,
+                initFields
+        );
     }
 
     /**

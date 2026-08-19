@@ -90,5 +90,10 @@ public interface NetbankingBankSimulator {
 
     return List.of();
   }
+  
+  default void afterInitPersisted(
+	        SimulatorRecord record,
+	        Map<String, String> initFields) {
+	}
 
 }

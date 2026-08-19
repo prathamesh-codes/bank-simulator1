@@ -36,7 +36,7 @@ class CabPayloadGeneratorTest {
 
         String biller_name = "MERCNAME";
         
-        String payment_ref_no = "CABTEST005";
+        String payment_ref_no = "CABTEST006";
         
         String currency = "INR";
         
@@ -77,7 +77,7 @@ class CabPayloadGeneratorTest {
 
         fields.put(
                 "return_url",
-                "http://localhost:9999/unused"
+                "http://localhost:9090/pg/ack"
         );
 
         fields.put(
@@ -229,7 +229,7 @@ class CabPayloadGeneratorTest {
                 "CABTEST005";
 
         String bankRefNo =
-                "SIM924331983568";
+                "671985803937";
 
 //        String failureReason =
 //                "";

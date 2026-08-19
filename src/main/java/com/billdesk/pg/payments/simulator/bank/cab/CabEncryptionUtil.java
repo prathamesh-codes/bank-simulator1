@@ -74,6 +74,27 @@ public final class CabEncryptionUtil {
             String encryptedPayload,
             String encryptionKey,
             String ivValue) {
+    	
+    	byte[] ciphertext1 =
+    	        Base64.getUrlDecoder()
+    	                .decode(
+    	                        encryptedPayload
+    	                );
+
+    	System.out.println(
+    	        "[CAB decrypt] encoded length="
+    	                + encryptedPayload.length()
+    	);
+
+    	System.out.println(
+    	        "[CAB decrypt] decoded bytes="
+    	                + ciphertext1.length
+    	);
+
+    	System.out.println(
+    	        "[CAB decrypt] block remainder="
+    	                + (ciphertext1.length % 16)
+    	);
 
         if (encryptedPayload == null ||
                 encryptedPayload.isBlank()) {
